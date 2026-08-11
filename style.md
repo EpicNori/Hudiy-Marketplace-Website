@@ -27,8 +27,10 @@ All page colors use CSS custom properties. No catalog data is rendered as truste
 - Search and filter panel above a three-column desktop catalogue.
 - Guides section for discovery, safety and contribution education.
 - Upload call-to-action and persistent safety notice.
-- Dialog-based authentication and upload flow. The header's `Anmelden` button opens the same auth surface directly; after login it becomes `Konto`.
+- Separate dialog surfaces for login, account management, and GitHub submission. The header's `Anmelden` button opens only the login dialog; after login it becomes `Konto`, while the submission dialog contains only repository fields and a link back to login.
+- The catalogue filter row mirrors the Hudiy Marketplace exactly: `Alle`, `Apps`, `Widgets`, `Overlays`, and `Dashboards`.
 
 ## Firebase contract
 
 The frontend uses the Firebase Web SDK with `VITE_FIREBASE_*` configuration. Firebase Authentication manages sessions and Firestore Rules protect the catalogue and submissions. A submission stores a public GitHub repository reference; package files are not copied into Firebase Storage. The website does not contain service-account credentials. See `firestore.rules` for the active authorization boundary.
+
