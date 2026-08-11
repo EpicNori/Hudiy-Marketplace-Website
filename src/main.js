@@ -48,7 +48,7 @@ app.innerHTML = `
         </div>
         <div class="hero-stats"><span><strong id="hero-count">–</strong> Einträge</span><span><strong>RLS</strong> geschützte Uploads</span><span><strong>MIT</strong> offene Community</span></div>
       </div>
-      <div class="hero-orbit" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit-core">H</div><span class="orbit-tag tag-one">Configs</span><span class="orbit-tag tag-two">Widgets</span><span class="orbit-tag tag-three">Guides</span></div>
+      <aside class="hero-panel"><div class="panel-top"><span>HUDIY COMMUNITY</span><span>ONLINE</span></div><strong>Community<br /><em>extensions.</em></strong><div class="panel-list"><span><b>01</b> Configs</span><span><b>02</b> Widgets</span><span><b>03</b> Guides</span></div></aside>
     </section>
 
     <section class="shell discover-section" id="discover">

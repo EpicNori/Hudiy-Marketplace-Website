@@ -2,7 +2,7 @@
 
 ## Direction
 
-The website is the public companion to the Hudiy WebView Marketplace. It uses a dark green Material-inspired foundation with bright mint primary actions, restrained lavender accents, rounded cards, and a technical editorial layout. A light mode is available through the header toggle.
+The website is the public companion to the Hudiy WebView Marketplace. It uses a dark brown/black dashboard foundation with warm cream text, restrained amber controls, compact rectangular cards, and a technical editorial layout. A light mode is available through the header toggle.
 
 ## Tokens
 
