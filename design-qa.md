@@ -8,7 +8,7 @@
 ## Implementation evidence
 
 - URL: `http://127.0.0.1:4175/` (fresh production preview)
-- State: dark mode, Firebase configuration present in `.env.local`, GitHub submission flow configured.
+- State: dark mode, Firebase configuration present in `.env.local` and `.env.production`, GitHub submission flow configured.
 - The live browser capture was inspected at the default 1280 × 720 CSS viewport on 2026-08-11.
 
 ## Comparison
@@ -31,7 +31,7 @@ Light mode remains available through the header toggle, while dark mode is the d
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain in the configured-client flow. Firebase Web configuration is present in local and Vercel environments. The live Firestore submission passed with the configured rules and isolated test account; the submission flow deliberately does not use Firebase Storage.
+No actionable P0, P1, or P2 findings remain in the configured-client flow. Firebase Web configuration is present in the local files used by Vite builds. The live Firestore submission passed with the configured rules and isolated test account; the submission flow deliberately does not use Firebase Storage.
 
 ## Final result
 
