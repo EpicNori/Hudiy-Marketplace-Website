@@ -34,7 +34,7 @@ copy .env.example .env.local
 npm run dev
 ```
 
-Local development can use `.env.local`. Production builds use the committed `.env.production` file, which contains only the public Firebase Web App configuration. Never put a service-account JSON, private key, OAuth client secret, or Composio credential into the repository.
+Local development can use `.env.local`. Production hosts such as Netlify must provide the `VITE_FIREBASE_*` values as environment variables during the build. Never put a service-account JSON, private key, OAuth client secret, or Composio credential into the repository.
 
 Enable these Firebase Authentication providers:
 
@@ -49,7 +49,7 @@ firebase use your-firebase-project-id
 firebase deploy --only firestore:rules,hosting
 ```
 
-Netlify can build directly from this repository because `.env.production` contains the public Firebase Web configuration. `firebase.json` also contains an optional Firebase Hosting target; if another host is used, configure the same `VITE_FIREBASE_*` values there or let it read `.env.production` during the build.
+Netlify must define the same `VITE_FIREBASE_*` values for its production build. `firebase.json` also contains an optional Firebase Hosting target; if another host is used, configure the same values there.
 
 ## Data contract
 
