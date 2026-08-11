@@ -52,6 +52,7 @@ app.innerHTML = `
       <a href="#discover">Entdecken</a>
       <a href="#guides">Guides</a>
       <a href="#upload">Hochladen</a>
+      <button class="nav-button" id="account-nav" type="button">Konto</button>
     </nav>
     <div class="header-actions">
       <span class="session-pill" id="session-pill">Gast</span>
@@ -78,7 +79,7 @@ app.innerHTML = `
 
     <section class="shell discover-section" id="discover">
       <div class="section-heading"><div><p class="eyebrow">Community-Katalog</p><h2>Was suchst du?</h2></div><span class="result-count" id="result-count">Lade Katalog …</span></div>
-      <div class="search-panel"><label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Nach Configs, Widgets oder Namen suchen …" autocomplete="off" /><button id="clear-search" type="button" hidden>×</button></label><div class="filter-row" id="filters"><button class="filter active" data-filter="all" type="button">Alles</button><button class="filter" data-filter="dashboard-widget" type="button">Widgets</button><button class="filter" data-filter="application" type="button">Apps</button><button class="filter" data-filter="overlay" type="button">Overlays</button></div></div>
+      <div class="search-panel"><label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Nach Configs, Widgets oder Namen suchen …" autocomplete="off" /><button id="clear-search" type="button" hidden>×</button></label><div class="filter-row" id="filters"><button class="filter active" data-filter="all" type="button">Alle</button><button class="filter" data-filter="application" type="button">Apps</button><button class="filter" data-filter="dashboard-widget" type="button">Widgets</button><button class="filter" data-filter="overlay" type="button">Overlays</button><button class="filter" data-filter="dashboard" type="button">Dashboards</button></div></div>
       <div class="catalog-grid" id="catalog-grid"></div>
       <div class="empty-state" id="empty-state" hidden><div class="empty-icon">⌁</div><h3 id="empty-title">Noch nichts gefunden</h3><p id="empty-copy">Versuche einen anderen Suchbegriff oder schaue später wieder vorbei.</p></div>
     </section>
@@ -91,12 +92,14 @@ app.innerHTML = `
   </main>
   <footer class="site-footer shell"><span>Hudiy Marketplace Website</span><span>Open community · MIT</span><a href="https://github.com/EpicNori/Hudiy-Marketplace" target="_blank" rel="noreferrer">Hudiy Marketplace App ↗</a></footer>
 
-  <dialog class="modal" id="upload-dialog"><div class="modal-header"><div><p class="eyebrow">GitHub-Einreichung</p><h2>Beitrag einreichen</h2></div><button class="icon-button" data-close-modal type="button" aria-label="Dialog schließen">×</button></div><div class="modal-body"><p class="modal-intro">Melde dich an und reiche ein öffentliches GitHub-Repository als Entwurf ein. Das Repository muss eine valide <code>manifest.json</code> enthalten.</p><form id="auth-form" class="auth-form"><label><span>E-Mail</span><input id="email" type="email" autocomplete="email" required /></label><label><span>Passwort</span><input id="password" type="password" autocomplete="current-password" minlength="6" required /></label><div class="inline-actions"><button class="button button-soft" id="sign-in" type="button">Einloggen</button><button class="button button-soft" id="sign-up" type="button">Registrieren</button><button class="button button-soft" id="google-login" type="button">Mit Google</button><button class="button button-ghost" id="sign-out" type="button" hidden>Abmelden</button></div></form><p class="auth-status" id="auth-status" role="status" aria-live="polite">Nicht angemeldet.</p><form id="upload-form" class="upload-form"><label><span>Öffentliche GitHub-Repository-URL</span><input id="repo-url" type="url" placeholder="https://github.com/owner/repository" required /></label><label><span>Branch oder Tag</span><input id="repo-ref" type="text" value="main" pattern="[A-Za-z0-9._/-]+" required /></label><label><span>Pfad zum Manifest</span><input id="manifest-path" type="text" value="manifest.json" pattern="[A-Za-z0-9._/-]+" required /></label><p class="form-hint">Der Beitrag wird später genau aus diesem öffentlichen Repository installiert. Nutze keine privaten oder passwortgeschützten Repositories.</p><button class="button button-primary" id="submit-upload" type="submit" disabled>GitHub-Repo prüfen und einreichen</button></form></div></dialog>
+  <dialog class="modal" id="login-dialog" aria-labelledby="login-dialog-title"><div class="modal-header"><div><p class="eyebrow">Konto-Zugang</p><h2 id="login-dialog-title">Anmelden</h2></div><button class="icon-button" data-close-modal type="button" aria-label="Anmeldedialog schließen">×</button></div><div class="modal-body"><p class="modal-intro">Melde dich separat an, bevor du dein Konto verwaltest oder einen Beitrag einreichst.</p><form id="login-form" class="auth-form"><label><span>E-Mail</span><input id="login-email" type="email" autocomplete="email" required /></label><label><span>Passwort</span><input id="login-password" type="password" autocomplete="current-password" minlength="6" required /></label><div class="inline-actions"><button class="button button-soft" id="sign-in" type="button">Einloggen</button><button class="button button-soft" id="sign-up" type="button">Registrieren</button><button class="button button-soft" id="google-login" type="button">Mit Google</button></div></form><p class="auth-status" id="login-status" role="status" aria-live="polite">Nicht angemeldet.</p></div></dialog>
+  <dialog class="modal" id="account-dialog" aria-labelledby="account-dialog-title"><div class="modal-header"><div><p class="eyebrow">Persönlicher Bereich</p><h2 id="account-dialog-title">Mein Konto</h2></div><button class="icon-button" data-close-modal type="button" aria-label="Kontodialog schließen">×</button></div><div class="modal-body"><div class="account-summary"><div class="account-avatar" id="account-avatar">G</div><div><strong id="account-email">Gast</strong><p id="account-copy">Melde dich an, um Einreichungen zu verwalten.</p></div></div><p class="auth-status" id="account-status" role="status" aria-live="polite">Nicht angemeldet.</p><div class="dialog-actions"><button class="button button-soft" id="account-login" type="button">Anmelden</button><button class="button button-primary" id="account-submit" type="button" hidden>Einreichung öffnen</button><button class="button button-ghost" id="account-sign-out" type="button" hidden>Abmelden</button></div></div></dialog>
+  <dialog class="modal" id="upload-dialog" aria-labelledby="upload-dialog-title"><div class="modal-header"><div><p class="eyebrow">GitHub-Einreichung</p><h2 id="upload-dialog-title">Beitrag einreichen</h2></div><button class="icon-button" data-close-modal type="button" aria-label="Einreichungsdialog schließen">×</button></div><div class="modal-body"><p class="modal-intro">Reiche ein öffentliches GitHub-Repository als Entwurf ein. Das Repository muss eine valide <code>manifest.json</code> enthalten.</p><p class="auth-status" id="upload-auth-status" role="status" aria-live="polite">Zum Einreichen ist eine Anmeldung erforderlich.</p><button class="button button-soft" id="open-upload-login" type="button">Zum Anmelden</button><form id="upload-form" class="upload-form"><label><span>Öffentliche GitHub-Repository-URL</span><input id="repo-url" type="url" placeholder="https://github.com/owner/repository" required /></label><label><span>Branch oder Tag</span><input id="repo-ref" type="text" value="main" pattern="[A-Za-z0-9._/-]+" required /></label><label><span>Pfad zum Manifest</span><input id="manifest-path" type="text" value="manifest.json" pattern="[A-Za-z0-9._/-]+" required /></label><p class="form-hint">Der Beitrag wird später genau aus diesem öffentlichen Repository installiert. Nutze keine privaten oder passwortgeschützten Repositories.</p><button class="button button-primary" id="submit-upload" type="submit" disabled>GitHub-Repo prüfen und einreichen</button></form></div></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 `;
 
 const elements = {
-  grid: document.querySelector('#catalog-grid'), empty: document.querySelector('#empty-state'), emptyTitle: document.querySelector('#empty-title'), emptyCopy: document.querySelector('#empty-copy'), resultCount: document.querySelector('#result-count'), heroCount: document.querySelector('#hero-count'), search: document.querySelector('#search'), clearSearch: document.querySelector('#clear-search'), filters: document.querySelector('#filters'), dialog: document.querySelector('#upload-dialog'), email: document.querySelector('#email'), password: document.querySelector('#password'), signIn: document.querySelector('#sign-in'), signUp: document.querySelector('#sign-up'), google: document.querySelector('#google-login'), signOut: document.querySelector('#sign-out'), authStatus: document.querySelector('#auth-status'), uploadForm: document.querySelector('#upload-form'), repoUrl: document.querySelector('#repo-url'), repoRef: document.querySelector('#repo-ref'), manifestPath: document.querySelector('#manifest-path'), submit: document.querySelector('#submit-upload'), toast: document.querySelector('#toast'), sessionPill: document.querySelector('#session-pill'), headerLogin: document.querySelector('#header-login'), themeToggle: document.querySelector('#theme-toggle')
+  grid: document.querySelector('#catalog-grid'), empty: document.querySelector('#empty-state'), emptyTitle: document.querySelector('#empty-title'), emptyCopy: document.querySelector('#empty-copy'), resultCount: document.querySelector('#result-count'), heroCount: document.querySelector('#hero-count'), search: document.querySelector('#search'), clearSearch: document.querySelector('#clear-search'), filters: document.querySelector('#filters'), loginDialog: document.querySelector('#login-dialog'), accountDialog: document.querySelector('#account-dialog'), uploadDialog: document.querySelector('#upload-dialog'), loginForm: document.querySelector('#login-form'), email: document.querySelector('#login-email'), password: document.querySelector('#login-password'), signIn: document.querySelector('#sign-in'), signUp: document.querySelector('#sign-up'), google: document.querySelector('#google-login'), loginStatus: document.querySelector('#login-status'), accountEmail: document.querySelector('#account-email'), accountAvatar: document.querySelector('#account-avatar'), accountCopy: document.querySelector('#account-copy'), accountStatus: document.querySelector('#account-status'), accountLogin: document.querySelector('#account-login'), accountSubmit: document.querySelector('#account-submit'), accountSignOut: document.querySelector('#account-sign-out'), uploadAuthStatus: document.querySelector('#upload-auth-status'), openUploadLogin: document.querySelector('#open-upload-login'), uploadForm: document.querySelector('#upload-form'), repoUrl: document.querySelector('#repo-url'), repoRef: document.querySelector('#repo-ref'), manifestPath: document.querySelector('#manifest-path'), submit: document.querySelector('#submit-upload'), toast: document.querySelector('#toast'), sessionPill: document.querySelector('#session-pill'), headerLogin: document.querySelector('#header-login'), accountNav: document.querySelector('#account-nav'), themeToggle: document.querySelector('#theme-toggle')
 };
 
 function toast(message) { elements.toast.textContent = message; elements.toast.hidden = false; window.clearTimeout(toast.timer); toast.timer = window.setTimeout(() => { elements.toast.hidden = true; }, 4200); }
@@ -154,13 +157,30 @@ async function loadCatalog() {
 
 function updateAuthUi() {
   const signedIn = Boolean(state.user);
-  elements.sessionPill.textContent = signedIn ? (state.user.email || 'Angemeldet') : 'Gast';
+  const email = state.user?.email || 'Firebase-Konto';
+  elements.sessionPill.textContent = signedIn ? email : 'Gast';
   elements.headerLogin.textContent = signedIn ? 'Konto' : 'Anmelden';
-  elements.headerLogin.setAttribute('aria-label', signedIn ? 'Konto und Upload öffnen' : 'Anmelden');
-  elements.signIn.hidden = signedIn; elements.signUp.hidden = signedIn; elements.google.hidden = signedIn || !FIREBASE_CONFIGURED; elements.signOut.hidden = !signedIn;
-  elements.email.disabled = signedIn; elements.password.disabled = signedIn;
-  elements.authStatus.textContent = signedIn ? `Angemeldet als ${state.user.email || 'Firebase-Konto'}.` : FIREBASE_CONFIGURED ? 'Nicht angemeldet. Zum Hochladen ist ein Konto erforderlich.' : 'Firebase ist noch nicht konfiguriert.';
-  elements.authStatus.dataset.state = signedIn ? 'signed-in' : 'signed-out';
+  elements.headerLogin.setAttribute('aria-label', signedIn ? 'Konto öffnen' : 'Anmelden');
+  elements.accountEmail.textContent = signedIn ? email : 'Gast';
+  elements.accountAvatar.textContent = signedIn ? email.slice(0, 1).toUpperCase() : 'G';
+  elements.accountCopy.textContent = signedIn ? 'Dein Konto ist bereit für Einreichungen.' : 'Melde dich an, um Einreichungen zu verwalten.';
+  elements.accountLogin.hidden = signedIn;
+  elements.accountSubmit.hidden = !signedIn;
+  elements.accountSignOut.hidden = !signedIn;
+  elements.signIn.disabled = state.authBusy || signedIn;
+  elements.signUp.disabled = state.authBusy || signedIn;
+  elements.google.disabled = state.authBusy || signedIn;
+  elements.email.disabled = signedIn;
+  elements.password.disabled = signedIn;
+  const loginStatus = signedIn ? `Angemeldet als ${email}.` : FIREBASE_CONFIGURED ? 'Nicht angemeldet.' : 'Firebase ist noch nicht konfiguriert.';
+  elements.loginStatus.textContent = loginStatus;
+  elements.loginStatus.dataset.state = signedIn ? 'signed-in' : 'signed-out';
+  elements.accountStatus.textContent = loginStatus;
+  elements.accountStatus.dataset.state = signedIn ? 'signed-in' : 'signed-out';
+  elements.uploadAuthStatus.textContent = signedIn ? `Angemeldet als ${email}. Dein Repository kann eingereicht werden.` : FIREBASE_CONFIGURED ? 'Zum Einreichen ist eine Anmeldung erforderlich.' : 'Firebase ist noch nicht konfiguriert.';
+  elements.uploadAuthStatus.dataset.state = signedIn ? 'signed-in' : 'signed-out';
+  elements.openUploadLogin.hidden = signedIn;
+  elements.uploadForm.querySelectorAll('input').forEach((input) => { input.disabled = !signedIn || state.uploadBusy; });
   elements.submit.disabled = !signedIn || state.uploadBusy;
 }
 
@@ -175,12 +195,13 @@ async function emailAuth(mode, button) {
     if (mode === 'signup') await createUserWithEmailAndPassword(auth, email, password);
     else await signInWithEmailAndPassword(auth, email, password);
     toast(mode === 'signup' ? 'Konto erstellt und angemeldet.' : 'Anmeldung erfolgreich.');
+    elements.loginDialog.close();
   } catch (error) { toast(firebaseErrorMessage(error)); }
   finally { state.authBusy = false; button.disabled = false; updateAuthUi(); }
 }
 
 async function startGoogleLogin() {
-  try { ensureFirebase(); await signInWithPopup(auth, new GoogleAuthProvider()); toast('Google-Anmeldung erfolgreich.'); }
+  try { ensureFirebase(); await signInWithPopup(auth, new GoogleAuthProvider()); toast('Google-Anmeldung erfolgreich.'); elements.loginDialog.close(); }
   catch (error) { toast(firebaseErrorMessage(error)); }
 }
 
@@ -227,16 +248,21 @@ async function uploadPackage(event) {
   finally { state.uploadBusy = false; updateAuthUi(); }
 }
 
-function openUpload() { updateAuthUi(); elements.dialog.showModal(); }
-function openLogin() { updateAuthUi(); elements.dialog.showModal(); window.setTimeout(() => elements.email.focus(), 0); }
+function openUpload() { updateAuthUi(); elements.uploadDialog.showModal(); }
+function openLogin() { updateAuthUi(); elements.loginDialog.showModal(); window.setTimeout(() => elements.email.focus(), 0); }
+function openAccount() { updateAuthUi(); elements.accountDialog.showModal(); }
 document.querySelectorAll('[data-open-upload]').forEach((button) => button.addEventListener('click', openUpload));
 document.querySelector('#header-upload').addEventListener('click', openUpload);
-elements.headerLogin.addEventListener('click', openLogin);
-document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', () => elements.dialog.close()));
-elements.dialog.addEventListener('click', (event) => { if (event.target === elements.dialog) elements.dialog.close(); });
+elements.headerLogin.addEventListener('click', () => state.user ? openAccount() : openLogin());
+elements.accountNav.addEventListener('click', openAccount);
+elements.accountLogin.addEventListener('click', () => { elements.accountDialog.close(); openLogin(); });
+elements.accountSubmit.addEventListener('click', () => { elements.accountDialog.close(); openUpload(); });
+elements.accountSignOut.addEventListener('click', async () => { try { await signOut(auth); toast('Du wurdest abgemeldet.'); } catch (error) { toast(firebaseErrorMessage(error)); } });
+elements.openUploadLogin.addEventListener('click', () => { elements.uploadDialog.close(); openLogin(); });
+document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', () => button.closest('dialog').close()));
+document.querySelectorAll('.modal').forEach((dialog) => dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); }));
 elements.signIn.addEventListener('click', () => emailAuth('signin', elements.signIn));
 elements.signUp.addEventListener('click', () => emailAuth('signup', elements.signUp));
-elements.signOut.addEventListener('click', async () => { try { await signOut(auth); } catch (error) { toast(firebaseErrorMessage(error)); } });
 elements.google.addEventListener('click', startGoogleLogin);
 elements.uploadForm.addEventListener('submit', uploadPackage);
 elements.search.addEventListener('input', (event) => { state.query = event.target.value.trim(); elements.clearSearch.hidden = !state.query; renderCatalog(); });
@@ -249,3 +275,4 @@ elements.themeToggle.textContent = isDarkMode() ? '☼' : '☾';
 updateAuthUi();
 if (auth) onAuthStateChanged(auth, (user) => { state.user = user; updateAuthUi(); });
 loadCatalog();
+
