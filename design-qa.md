@@ -20,7 +20,8 @@ Light mode remains available through the header toggle, while dark mode is the d
 ## Primary interactions tested
 
 - Catalog search and category filter update the visible result state.
-- Upload dialog opens through the header action and shows email/password and Google authentication paths.
+- The visible `Anmelden` header button opens the auth dialog and focuses the email field; the dialog shows email/password and Google authentication paths without exposing the signed-out `Abmelden` action.
+- Auth requests do not inherit stale bearer tokens, and registration without an immediate session gives an explicit email-confirmation message.
 - Theme toggle switches between the dark Hudiy palette and the light fallback palette.
 - Vite production build completes successfully.
 

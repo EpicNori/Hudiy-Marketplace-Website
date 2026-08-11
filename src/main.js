@@ -12,6 +12,7 @@ const state = {
   filter: 'all',
   query: '',
   session: null,
+  googleEnabled: true,
   authBusy: false,
   uploadBusy: false
 };
@@ -31,6 +32,7 @@ app.innerHTML = `
     </nav>
     <div class="header-actions">
       <span class="session-pill" id="session-pill">Gast</span>
+      <button class="button button-soft" id="header-login" type="button">Anmelden</button>
       <button class="button button-ghost" id="theme-toggle" type="button" aria-label="Theme wechseln">☼</button>
       <button class="button button-primary" id="header-upload" type="button">Einreichen</button>
     </div>
@@ -71,14 +73,15 @@ app.innerHTML = `
 `;
 
 const elements = {
-  grid: document.querySelector('#catalog-grid'), empty: document.querySelector('#empty-state'), emptyTitle: document.querySelector('#empty-title'), emptyCopy: document.querySelector('#empty-copy'), resultCount: document.querySelector('#result-count'), heroCount: document.querySelector('#hero-count'), search: document.querySelector('#search'), clearSearch: document.querySelector('#clear-search'), filters: document.querySelector('#filters'), dialog: document.querySelector('#upload-dialog'), authForm: document.querySelector('#auth-form'), email: document.querySelector('#email'), password: document.querySelector('#password'), signIn: document.querySelector('#sign-in'), signUp: document.querySelector('#sign-up'), google: document.querySelector('#google-login'), signOut: document.querySelector('#sign-out'), authStatus: document.querySelector('#auth-status'), uploadForm: document.querySelector('#upload-form'), manifest: document.querySelector('#manifest'), package: document.querySelector('#package'), submit: document.querySelector('#submit-upload'), toast: document.querySelector('#toast'), sessionPill: document.querySelector('#session-pill'), themeToggle: document.querySelector('#theme-toggle')
+  grid: document.querySelector('#catalog-grid'), empty: document.querySelector('#empty-state'), emptyTitle: document.querySelector('#empty-title'), emptyCopy: document.querySelector('#empty-copy'), resultCount: document.querySelector('#result-count'), heroCount: document.querySelector('#hero-count'), search: document.querySelector('#search'), clearSearch: document.querySelector('#clear-search'), filters: document.querySelector('#filters'), dialog: document.querySelector('#upload-dialog'), authForm: document.querySelector('#auth-form'), email: document.querySelector('#email'), password: document.querySelector('#password'), signIn: document.querySelector('#sign-in'), signUp: document.querySelector('#sign-up'), google: document.querySelector('#google-login'), signOut: document.querySelector('#sign-out'), authStatus: document.querySelector('#auth-status'), uploadForm: document.querySelector('#upload-form'), manifest: document.querySelector('#manifest'), package: document.querySelector('#package'), submit: document.querySelector('#submit-upload'), toast: document.querySelector('#toast'), sessionPill: document.querySelector('#session-pill'), headerLogin: document.querySelector('#header-login'), themeToggle: document.querySelector('#theme-toggle')
 };
 
 function supabaseRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set('apikey', SUPABASE_KEY);
   if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
-  if (state.session?.access_token) headers.set('Authorization', `Bearer ${state.session.access_token}`);
+  const isAuthRequest = path.startsWith('/auth/v1/');
+  if (state.session?.access_token && !isAuthRequest) headers.set('Authorization', `Bearer ${state.session.access_token}`);
   return fetch(`${SUPABASE_URL.replace(/\/$/, '')}${path}`, { ...options, headers }).then(async (response) => {
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(body?.msg || body?.message || body?.error_description || `Supabase ${response.status}`);
@@ -122,12 +125,24 @@ async function loadCatalog() {
   }
 }
 
+async function loadAuthProviders() {
+  try {
+    const settings = await supabaseRequest('/auth/v1/settings');
+    state.googleEnabled = Boolean(settings?.external?.google);
+    updateAuthUi();
+  } catch {
+    // Keep email/password available when provider discovery is temporarily unavailable.
+  }
+}
+
 function updateAuthUi() {
   const signedIn = Boolean(state.session?.access_token);
   elements.sessionPill.textContent = signedIn ? (state.session.user?.email || 'Angemeldet') : 'Gast';
-  elements.signIn.hidden = signedIn; elements.signUp.hidden = signedIn; elements.google.hidden = signedIn; elements.signOut.hidden = !signedIn;
+  elements.headerLogin.textContent = signedIn ? 'Konto' : 'Anmelden';
+  elements.headerLogin.setAttribute('aria-label', signedIn ? 'Konto und Upload öffnen' : 'Anmelden');
+  elements.signIn.hidden = signedIn; elements.signUp.hidden = signedIn; elements.google.hidden = signedIn || !state.googleEnabled; elements.signOut.hidden = !signedIn;
   elements.email.disabled = signedIn; elements.password.disabled = signedIn;
-  elements.authStatus.textContent = signedIn ? `Angemeldet als ${state.session.user?.email || 'Supabase-Konto'}.` : 'Nicht angemeldet. Zum Hochladen ist ein Konto erforderlich.';
+  elements.authStatus.textContent = signedIn ? `Angemeldet als ${state.session.user?.email || 'Supabase-Konto'}.` : `Nicht angemeldet. Zum Hochladen ist ein Konto erforderlich.${state.googleEnabled ? '' : ' Google-Login ist im Supabase-Projekt noch nicht aktiviert.'}`;
   elements.authStatus.dataset.state = signedIn ? 'signed-in' : 'signed-out';
   elements.submit.disabled = !signedIn || state.uploadBusy;
 }
@@ -135,9 +150,29 @@ function updateAuthUi() {
 async function auth(path, button) {
   if (state.authBusy) return;
   state.authBusy = true; button.disabled = true;
-  try { const session = await supabaseRequest(path, { method: 'POST', body: JSON.stringify({ email: elements.email.value.trim(), password: elements.password.value }) }); saveSession(session); toast('Anmeldung erfolgreich.'); }
-  catch (error) { toast(error.message || 'Anmeldung fehlgeschlagen.'); }
+  try {
+    const email = elements.email.value.trim();
+    const password = elements.password.value;
+    if (!email || !password) throw new Error('E-Mail und Passwort ausfüllen.');
+    const session = await supabaseRequest(path, { method: 'POST', body: JSON.stringify({ email, password }) });
+    if (!session?.access_token) {
+      updateAuthUi();
+      toast(path.includes('/signup') ? 'Konto erstellt. Bitte bestätige zuerst deine E-Mail.' : 'Keine gültige Session erhalten.');
+      return;
+    }
+    saveSession(session);
+    toast('Anmeldung erfolgreich.');
+  } catch (error) { toast(authErrorMessage(error)); }
   finally { state.authBusy = false; button.disabled = false; updateAuthUi(); }
+}
+
+function authErrorMessage(error) {
+  const message = String(error?.message || '');
+  if (/invalid login credentials/i.test(message)) return 'E-Mail oder Passwort ist nicht korrekt.';
+  if (/email not confirmed/i.test(message)) return 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+  if (/user already registered/i.test(message)) return 'Für diese E-Mail existiert bereits ein Konto.';
+  if (/failed to fetch|networkerror/i.test(message)) return 'Supabase ist nicht erreichbar. Prüfe URL und Vercel-Umgebungsvariablen.';
+  return message || 'Anmeldung fehlgeschlagen.';
 }
 
 function startGoogleLogin() {
@@ -177,8 +212,10 @@ async function uploadPackage(event) {
 }
 
 function openUpload() { updateAuthUi(); elements.dialog.showModal(); }
+function openLogin() { updateAuthUi(); elements.dialog.showModal(); window.setTimeout(() => elements.email.focus(), 0); }
 document.querySelectorAll('[data-open-upload]').forEach((button) => button.addEventListener('click', openUpload));
 document.querySelector('#header-upload').addEventListener('click', openUpload);
+elements.headerLogin.addEventListener('click', openLogin);
 document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', () => elements.dialog.close()));
 elements.dialog.addEventListener('click', (event) => { if (event.target === elements.dialog) elements.dialog.close(); });
 elements.signIn.addEventListener('click', () => auth('/auth/v1/token?grant_type=password', elements.signIn));
@@ -193,4 +230,4 @@ elements.themeToggle.addEventListener('click', () => { document.documentElement.
 
 document.documentElement.dataset.mode = localStorage.getItem('hudiy-community-mode') || 'dark';
 elements.themeToggle.textContent = isColorModeDark() ? '☼' : '☾';
-state.session = loadSession(); updateAuthUi(); handleAuthRedirect().finally(loadCatalog);
+state.session = loadSession(); updateAuthUi(); handleAuthRedirect().finally(() => { loadCatalog(); loadAuthProviders(); });

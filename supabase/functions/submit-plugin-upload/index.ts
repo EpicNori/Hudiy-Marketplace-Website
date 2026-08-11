@@ -62,7 +62,7 @@ Deno.serve(async (request) => {
     previousPlugin = existing;
 
     const entryPath = (manifest.entry as Record<string, unknown> | undefined)?.path;
-    const supportedHudiyVersion = String(manifest.supportedHudiyVersion ?? (manifest.supportedHudiy as Record<string, unknown>).minVersion);
+    const supportedHudiyVersion = String(manifest.supportedHudiyVersion ?? (manifest.supportedHudiy as Record<string, unknown> | undefined)?.minVersion ?? '');
     const entrypoints = manifest.entrypoints ?? (typeof entryPath === 'string' ? { [String(manifest.type)]: entryPath } : {});
     const pluginRow = {
       id: pluginId, name: String(manifest.name), description: String(manifest.description), author: String(manifest.author), author_user_id: authData.user.id,
