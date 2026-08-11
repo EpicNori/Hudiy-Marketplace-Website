@@ -24,6 +24,7 @@ The browser never contains a service-account key. Publishing, moderation and mov
 - [Security](docs/MARKETPLACE_SECURITY.md)
 - [Device testing](docs/MARKETPLACE_DEVICE_TESTING.md)
 - [OBD2 plugin limits](docs/OBD2_PLUGIN_LIMITS.md)
+- [Website submission test report](docs/WEBSITE_SUBMISSION_TEST_REPORT_2026-08-11.md)
 
 ## Local setup
 
@@ -80,3 +81,4 @@ The former Supabase files remain in the repository as legacy migration material,
 ## License
 
 MIT
+
