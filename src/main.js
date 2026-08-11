@@ -53,7 +53,7 @@ app.innerHTML = `
 
     <section class="shell discover-section" id="discover">
       <div class="section-heading"><div><p class="eyebrow">Community-Katalog</p><h2>Was suchst du?</h2></div><span class="result-count" id="result-count">Lade Katalog …</span></div>
-      <div class="search-panel"><label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Nach Configs, Widgets oder Namen suchen …" autocomplete="off" /><button id="clear-search" type="button" hidden>×</button></label><div class="filter-row" id="filters"><button class="filter active" data-filter="all" type="button">Alles</button><button class="filter" data-filter="configuration" type="button">Configs</button><button class="filter" data-filter="widget" type="button">Widgets</button><button class="filter" data-filter="app" type="button">Apps</button></div></div>
+      <div class="search-panel"><label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Nach Configs, Widgets oder Namen suchen …" autocomplete="off" /><button id="clear-search" type="button" hidden>×</button></label><div class="filter-row" id="filters"><button class="filter active" data-filter="all" type="button">Alles</button><button class="filter" data-filter="dashboard-widget" type="button">Widgets</button><button class="filter" data-filter="application" type="button">Apps</button><button class="filter" data-filter="overlay" type="button">Overlays</button></div></div>
       <div class="catalog-grid" id="catalog-grid"></div>
       <div class="empty-state" id="empty-state" hidden><div class="empty-icon">⌁</div><h3 id="empty-title">Noch nichts gefunden</h3><p id="empty-copy">Versuche einen anderen Suchbegriff oder schaue später wieder vorbei.</p></div>
     </section>
@@ -77,7 +77,7 @@ const elements = {
 function supabaseRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set('apikey', SUPABASE_KEY);
-  if (!headers.has('Content-Type') && options.body) headers.set('Content-Type', 'application/json');
+  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   if (state.session?.access_token) headers.set('Authorization', `Bearer ${state.session.access_token}`);
   return fetch(`${SUPABASE_URL.replace(/\/$/, '')}${path}`, { ...options, headers }).then(async (response) => {
     const body = await response.json().catch(() => null);
@@ -104,13 +104,13 @@ function renderCatalog() {
   elements.heroCount.textContent = state.entries.length;
 }
 
-function typeLabel(type) { return { configuration: 'Config', widget: 'Widget', app: 'App', overlay: 'Overlay' }[type] || 'Community'; }
+function typeLabel(type) { return { application: 'Application', dashboard: 'Dashboard', 'dashboard-widget': 'Widget', overlay: 'Overlay' }[type] || 'Community'; }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 
 async function loadCatalog() {
   try {
-    const params = '?select=id,name,description,author,version,type,permissions,updated_at&status=eq.published&order=downloads.desc,updated_at.desc';
-    state.entries = await supabaseRequest(`/rest/v1/plugins${params}`);
+    const payload = await supabaseRequest('/functions/v1/catalog');
+    state.entries = Array.isArray(payload?.plugins) ? payload.plugins : [];
     renderCatalog();
   } catch (error) {
     state.entries = [];
@@ -159,19 +159,19 @@ async function uploadPackage(event) {
   state.uploadBusy = true; updateAuthUi();
   try {
     const manifest = JSON.parse(await manifestFile.text());
-    const required = ['id', 'name', 'description', 'author', 'version', 'supportedHudiyVersion', 'checksum'];
+    const required = ['id', 'name', 'description', 'author', 'version', 'checksum'];
     if (required.some((key) => typeof manifest[key] !== 'string' || !manifest[key].trim())) throw new Error('Manifest unvollständig.');
+    if (manifest.schemaVersion !== 1 || (typeof manifest.supportedHudiyVersion !== 'string' && typeof manifest.supportedHudiy?.minVersion !== 'string')) throw new Error('Manifest-Schema oder Hudiy-Version ungültig.');
     if (!/^[a-z0-9][a-z0-9._-]{1,63}$/.test(manifest.id) || !/^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$/.test(manifest.version)) throw new Error('Manifest-ID oder Version ungültig.');
     if (!packageFile.name.toLowerCase().endsWith('.zip')) throw new Error('Nur ZIP-Pakete sind erlaubt.');
     const digest = await crypto.subtle.digest('SHA-256', await packageFile.arrayBuffer()); const checksum = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
     if (manifest.checksum.replace(/^sha256:/i, '').toLowerCase() !== checksum) throw new Error('Checksum stimmt nicht mit dem ZIP überein.');
-    const uid = state.session.user.id; const path = `${uid}/${manifest.id}/${manifest.version}/package.zip`;
-    await supabaseRequest(`/storage/v1/object/${BUCKET}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/zip', 'x-upsert': 'true' }, body: packageFile });
-    const plugin = await supabaseRequest('/rest/v1/plugins', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ id: manifest.id, name: manifest.name, description: manifest.description, author: manifest.author, author_user_id: uid, version: manifest.version, type: manifest.type || 'configuration', supported_hudiy_version: manifest.supportedHudiyVersion, permissions: manifest.permissions || [], entrypoints: manifest.entrypoints || {}, files: manifest.files || [], checksum: `sha256:${checksum}`, status: 'draft' }) });
-    const pluginId = plugin?.[0]?.id || manifest.id;
-    await supabaseRequest('/rest/v1/plugin_versions', { method: 'POST', body: JSON.stringify({ plugin_id: pluginId, version: manifest.version, storage_path: path, checksum: `sha256:${checksum}`, release_notes: manifest.releaseNotes || '', status: 'draft' }) });
-    await supabaseRequest('/rest/v1/plugin_uploads', { method: 'POST', body: JSON.stringify({ plugin_id: pluginId, uploader_user_id: uid, storage_path: path, original_filename: packageFile.name, byte_size: packageFile.size, checksum: `sha256:${checksum}`, status: 'pending_review' }) });
-    toast('Upload erfolgreich als Entwurf eingereicht.'); elements.uploadForm.reset();
+    const form = new FormData();
+    form.append('manifest', new File([JSON.stringify(manifest)], 'manifest.json', { type: 'application/json' }));
+    form.append('package', packageFile, packageFile.name);
+    const result = await supabaseRequest('/functions/v1/submit-plugin-upload', { method: 'POST', body: form });
+    if (!result?.ok) throw new Error('Upload wurde abgelehnt.');
+    toast('Upload serverseitig geprüft und zur Moderation eingereicht.'); elements.uploadForm.reset();
   } catch (error) { toast(error.message || 'Upload fehlgeschlagen.'); }
   finally { state.uploadBusy = false; updateAuthUi(); }
 }
