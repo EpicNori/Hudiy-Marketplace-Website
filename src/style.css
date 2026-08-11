@@ -52,7 +52,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .brand small { display: block; margin-top: 4px; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
 .brand-mark { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 19px; }
 .main-nav { display: flex; gap: 28px; color: var(--muted); font-size: 14px; font-weight: 600; }
-.main-nav a:hover, .site-footer a:hover { color: var(--accent); }
+.main-nav a:hover, .main-nav .nav-button:hover, .site-footer a:hover { color: var(--accent); }
+.nav-button { padding: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; }
 .header-actions, .hero-actions, .inline-actions, .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .session-pill, .result-count, .version { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 12px; }
 
@@ -137,6 +138,11 @@ h1 span { color: var(--accent); }
 .auth-form input:focus, .upload-form input:focus { border-color: var(--primary); }
 .auth-status { padding: 12px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); font-size: 13px; }
 .auth-status[data-state='signed-in'] { border-color: var(--primary); color: var(--text); }
+.account-summary { display: flex; align-items: center; gap: 14px; padding: 15px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.account-summary strong { display: block; overflow-wrap: anywhere; }
+.account-summary p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.account-avatar { display: grid; place-items: center; flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-family: 'Space Grotesk'; font-size: 20px; font-weight: 700; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .upload-form { margin-top: 21px; padding-top: 20px; border-top: 1px solid var(--line); }
 .form-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .modal code { padding: 2px 5px; border-radius: 4px; background: var(--surface-2); color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .9em; }
@@ -166,3 +172,4 @@ h1 span { color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
