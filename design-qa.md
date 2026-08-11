@@ -7,7 +7,7 @@
 
 ## Implementation evidence
 
-- URL: `http://127.0.0.1:4176/` (fresh production preview)
+- URL: `http://127.0.0.1:4175/` (fresh production preview)
 - State: dark mode, Firebase configuration present in `.env.local`, GitHub submission flow configured.
 - The live browser capture was inspected at the default 1280 × 720 CSS viewport on 2026-08-11.
 
@@ -20,16 +20,20 @@ Light mode remains available through the header toggle, while dark mode is the d
 ## Primary interactions tested
 
 - Catalog search and category filter update the visible result state.
-- The visible `Anmelden` header button opens the Firebase auth dialog and focuses the email field; the signed-out `Abmelden` action remains hidden.
+- The Website mirrors the Marketplace filter set and order: `Alle`, `Apps`, `Widgets`, `Overlays`, `Dashboards`.
+- The visible `Anmelden` header button opens only the separate Firebase login dialog; after authentication it opens the separate account-management dialog.
+- The `Einreichen` button opens only the GitHub submission dialog and links unauthenticated users back to login instead of embedding auth fields.
 - Missing Firebase configuration produces an explicit setup message instead of silently using Supabase or making unauthenticated writes.
 - Firebase build includes email/password and Google provider paths; repository submissions validate a public GitHub `manifest.json` and write only a pending Firestore record.
+- A real public declarative fixture repository was submitted successfully with an isolated Firebase test account; see `docs/WEBSITE_SUBMISSION_TEST_REPORT_2026-08-11.md`.
 - Theme toggle switches between the dark Hudiy palette and the light fallback palette.
 - Vite production build completes successfully.
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain in the configured-client flow. Firebase Web configuration is present in local and Vercel environments. Live Firestore writes require the Firestore Rules deployment and a signed-in test account; the submission flow deliberately does not use Firebase Storage.
+No actionable P0, P1, or P2 findings remain in the configured-client flow. Firebase Web configuration is present in local and Vercel environments. The live Firestore submission passed with the configured rules and isolated test account; the submission flow deliberately does not use Firebase Storage.
 
 ## Final result
 
-passed; live submission test pending
+passed; live submission test passed
+
