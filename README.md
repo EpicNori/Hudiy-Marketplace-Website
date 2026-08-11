@@ -34,7 +34,7 @@ copy .env.example .env.local
 npm run dev
 ```
 
-Fill the `VITE_FIREBASE_*` values in `.env.local` with the Firebase Web App configuration. These values are intended for the browser; never put a service-account JSON or private key into `.env.local` or Vercel.
+Local development can use `.env.local`. Production builds use the committed `.env.production` file, which contains only the public Firebase Web App configuration. Never put a service-account JSON, private key, OAuth client secret, or Composio credential into the repository.
 
 Enable these Firebase Authentication providers:
 
@@ -49,7 +49,7 @@ firebase use your-firebase-project-id
 firebase deploy --only firestore:rules,hosting
 ```
 
-Vercel is the current production host and uses the Firebase Web configuration variables. `firebase.json` also contains an optional Firebase Hosting target; if both hosts are used, configure the same Firebase Web environment values in both.
+Netlify can build directly from this repository because `.env.production` contains the public Firebase Web configuration. `firebase.json` also contains an optional Firebase Hosting target; if another host is used, configure the same `VITE_FIREBASE_*` values there or let it read `.env.production` during the build.
 
 ## Data contract
 
