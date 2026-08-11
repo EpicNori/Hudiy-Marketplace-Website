@@ -28,8 +28,8 @@ Light mode remains available through the header toggle, while dark mode is the d
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain in the configured-client flow. Live Firebase auth and Firestore reads/writes still require the configured Firebase project and deployed Firestore Rules.
+No actionable P0, P1, or P2 findings remain in the configured-client flow. Firebase Web configuration is present in local and Vercel environments. Live Firestore writes require the Firestore Rules deployment and a signed-in test account; the submission flow deliberately does not use Firebase Storage.
 
 ## Final result
 
-passed with configuration pending
+passed; live submission test pending
