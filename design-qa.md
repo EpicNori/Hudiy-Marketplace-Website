@@ -7,28 +7,29 @@
 
 ## Implementation evidence
 
-- URL: `http://127.0.0.1:4175/`
-- State: dark mode, empty connected catalogue, no upload dialog open.
+- URL: `http://127.0.0.1:4176/` (fresh production preview)
+- State: dark mode, Firebase configuration present in `.env.local`, GitHub submission flow configured.
 - The live browser capture was inspected at the default 1280 × 720 CSS viewport on 2026-08-11.
 
 ## Comparison
 
-The website uses the same dark-brown/cream/amber palette as the supplied Hudiy dashboard. The hero panel, search controls, catalog cards, guide cards, upload panel, and header now use compact surfaces, reduced radii, restrained borders, and minimal shadow. The website keeps its own marketplace information architecture because the reference is a dashboard rather than a catalog.
+The website uses the same dark-brown/cream/amber palette as the supplied Hudiy dashboard. The hero panel, search controls, catalog cards, guide cards, upload panel, and header now use compact surfaces, reduced radii, restrained borders, and minimal shadow. The website keeps its own marketplace information architecture because the reference is a dashboard rather than a catalog. Firebase is now the active backend contract.
 
 Light mode remains available through the header toggle, while dark mode is the default for new visitors and matches the plugin.
 
 ## Primary interactions tested
 
 - Catalog search and category filter update the visible result state.
-- The visible `Anmelden` header button opens the auth dialog and focuses the email field; the dialog shows email/password and Google authentication paths without exposing the signed-out `Abmelden` action.
-- Auth requests do not inherit stale bearer tokens, and registration without an immediate session gives an explicit email-confirmation message.
+- The visible `Anmelden` header button opens the Firebase auth dialog and focuses the email field; the signed-out `Abmelden` action remains hidden.
+- Missing Firebase configuration produces an explicit setup message instead of silently using Supabase or making unauthenticated writes.
+- Firebase build includes email/password and Google provider paths; repository submissions validate a public GitHub `manifest.json` and write only a pending Firestore record.
 - Theme toggle switches between the dark Hudiy palette and the light fallback palette.
 - Vite production build completes successfully.
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain.
+No actionable P0, P1, or P2 findings remain in the configured-client flow. Live Firebase auth and Firestore reads/writes still require the configured Firebase project and deployed Firestore Rules.
 
 ## Final result
 
-passed
+passed with configuration pending

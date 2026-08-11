@@ -1,18 +1,18 @@
 # Hudiy Marketplace Website
 
-Public community website for discovering Hudiy plugins, widgets and configs, reading setup guides, and submitting packages for review.
+Public community website for discovering Hudiy plugins, widgets and configs, reading setup guides, and submitting GitHub repositories for moderation.
 
-## Features
+## Firebase architecture
 
-- Supabase-backed published catalogue with client-side search and type filters.
-- E-mail/password login and Google OAuth through the existing Hudiy Marketplace Supabase project.
-- Upload validation for manifest fields, ZIP extension, 50 MB size limit and SHA-256 checksum.
-- Private `plugin-packages` Storage uploads and draft metadata protected by Supabase RLS.
-- Server-side Supabase Edge Functions for ZIP validation, private storage, moderation state, and signed catalog download URLs.
-- Static Vite build suitable for Vercel.
-- MIT licensed.
+- Firebase Authentication: Google OAuth and e-mail/password login.
+- Cloud Firestore: published `plugins` catalogue and owner-scoped `submissions`.
+- GitHub repositories: the creator's public repository is the package source; the website validates the referenced manifest before creating a submission.
+- Firebase Hosting: Vite `dist` output with an SPA rewrite.
+- Firebase Security Rules: public reads are limited to published plugins; users can create only their own pending GitHub submissions.
 
-## Development
+The browser never contains a service-account key. Publishing, moderation and moving files into the public `plugins` path must happen through a trusted Firebase Admin process or the Firebase console.
+
+## Local setup
 
 ```bash
 npm install
@@ -20,8 +20,45 @@ copy .env.example .env.local
 npm run dev
 ```
 
-Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and `VITE_SITE_URL` in Vercel. Only the publishable key belongs in this frontend; never expose a Supabase service-role key.
+Fill the `VITE_FIREBASE_*` values in `.env.local` with the Firebase Web App configuration. These values are intended for the browser; never put a service-account JSON or private key into `.env.local` or Vercel.
 
-Apply `supabase/migrations/20260811000000_marketplace.sql`. Deploy `submit-plugin-upload` with the normal Supabase JWT verification enabled, and deploy the intentionally public `catalog` function with `--no-verify-jwt`; the catalog still returns only published rows and signed URLs. Set `SUPABASE_SERVICE_ROLE_KEY` only as a Supabase Edge Function secret. The browser submits `multipart/form-data` to the upload function; it does not write Storage or plugin tables directly.
+Enable these Firebase Authentication providers:
 
-The website reuses project `mdzsxuxqrhnadmkroalq`. Configure the Vercel production URL in Supabase Auth URL Configuration and enable Google with its provider credentials before using Google login.
+- Google
+- Email/password
+
+The Firebase project must also have Cloud Firestore enabled. Storage is not required for the GitHub-based submission flow. Deploy the rules and Hosting configuration with the Firebase CLI:
+
+```bash
+firebase login
+firebase use your-firebase-project-id
+firebase deploy --only firestore:rules,hosting
+```
+
+The public Vercel deployment can continue to serve the Vite build, but Firebase Hosting is the canonical deployment target after this migration. If both are used, configure the same Firebase Web App environment values in both hosts.
+
+## Data contract
+
+Published catalogue documents live in `plugins/{pluginId}` and need at least `status: "published"`, `name`, `description`, `author`, `version` and `type`.
+
+User submissions are written to `submissions/{submissionId}` with `status: "pending"`, `ownerId`, `pluginId`, `repoUrl`, `repoOwner`, `repoName`, `repoRef`, `manifestPath`, `manifestUrl`, and the validated manifest metadata. The client fetches `manifest.json` from `raw.githubusercontent.com` and rejects private, non-GitHub, malformed, or invalid repositories. The client does not have permission to publish, update or delete submissions.
+
+Each public repository must contain a manifest with this minimum shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "my-hudiy-plugin",
+  "name": "My Hudiy Plugin",
+  "description": "A short description.",
+  "author": "Your GitHub name",
+  "version": "1.0.0",
+  "supportedHudiyVersion": ">=1.0.0"
+}
+```
+
+The former Supabase files remain in the repository as legacy migration material, but the website client no longer calls Supabase.
+
+## License
+
+MIT

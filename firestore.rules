@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /plugins/{pluginId} {
+      // The public website can only read records explicitly published by moderation.
+      allow read: if resource.data.status == 'published';
+      // Publishing and edits happen through a trusted admin/server process.
+      allow write: if false;
+    }
+
+    match /submissions/{submissionId} {
+      // A user may create only their own pending submission with the expected shape.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'submissionId', 'sourceType', 'pluginId', 'name', 'description', 'author', 'version', 'ownerId',
+          'status', 'repoUrl', 'repoOwner', 'repoName', 'repoRef', 'manifestPath', 'manifestUrl', 'createdAt'
+        ])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.submissionId == submissionId
+        && request.resource.data.pluginId is string
+        && request.resource.data.name is string
+        && request.resource.data.description is string
+        && request.resource.data.author is string
+        && request.resource.data.version is string
+        && request.resource.data.submissionId is string
+        && request.resource.data.sourceType == 'github'
+        && request.resource.data.repoUrl is string
+        && request.resource.data.repoOwner is string
+        && request.resource.data.repoName is string
+        && request.resource.data.repoRef is string
+        && request.resource.data.manifestPath is string
+        && request.resource.data.manifestUrl is string
+        && request.resource.data.repoUrl.startsWith('https://github.com/')
+        && request.resource.data.manifestUrl.startsWith('https://raw.githubusercontent.com/');
+
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

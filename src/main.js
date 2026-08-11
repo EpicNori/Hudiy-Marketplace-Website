@@ -1,18 +1,41 @@
 import './style.css';
+import { initializeApp } from 'firebase/app';
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth';
+import {
+  addDoc,
+  collection,
+  getFirestore,
+  getDocs,
+  query,
+  serverTimestamp,
+  where
+} from 'firebase/firestore';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://mdzsxuxqrhnadmkroalq.supabase.co';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_HHy5vHMVCwmMb7kA-sgt5Q_UJ7A_vQM';
-const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
-const SESSION_KEY = 'hudiy-community-session';
-const BUCKET = 'plugin-packages';
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
+};
+const FIREBASE_CONFIGURED = ['apiKey', 'authDomain', 'projectId', 'appId'].every((key) => Boolean(firebaseConfig[key]));
+const firebaseApp = FIREBASE_CONFIGURED ? initializeApp(firebaseConfig) : null;
+const auth = firebaseApp ? getAuth(firebaseApp) : null;
+const db = firebaseApp ? getFirestore(firebaseApp) : null;
 
 const state = {
   entries: [],
   filter: 'all',
   query: '',
-  session: null,
-  googleEnabled: true,
+  user: null,
   authBusy: false,
   uploadBusy: false
 };
@@ -48,7 +71,7 @@ app.innerHTML = `
           <a class="button button-primary" href="#discover">Katalog entdecken <span>↗</span></a>
           <a class="button button-soft" href="#guides">Wie funktioniert's?</a>
         </div>
-        <div class="hero-stats"><span><strong id="hero-count">–</strong> Einträge</span><span><strong>RLS</strong> geschützte Uploads</span><span><strong>MIT</strong> offene Community</span></div>
+        <div class="hero-stats"><span><strong id="hero-count">–</strong> Einträge</span><span><strong>Firebase</strong> geschützte Daten</span><span><strong>MIT</strong> offene Community</span></div>
       </div>
       <aside class="hero-panel"><div class="panel-top"><span>HUDIY COMMUNITY</span><span>ONLINE</span></div><strong>Community<br /><em>extensions.</em></strong><div class="panel-list"><span><b>01</b> Configs</span><span><b>02</b> Widgets</span><span><b>03</b> Guides</span></div></aside>
     </section>
@@ -60,46 +83,43 @@ app.innerHTML = `
       <div class="empty-state" id="empty-state" hidden><div class="empty-icon">⌁</div><h3 id="empty-title">Noch nichts gefunden</h3><p id="empty-copy">Versuche einen anderen Suchbegriff oder schaue später wieder vorbei.</p></div>
     </section>
 
-    <section class="info-band shell" id="guides"><div class="section-heading"><div><p class="eyebrow">Wissen & Sicherheit</p><h2>Schneller startklar.</h2></div></div><div class="guide-grid"><article class="guide-card"><span class="guide-number">01</span><h3>Finde passende Configs</h3><p>Suche nach deinem Hudiy-Modell, Setup oder Anwendungsfall. Jede Karte zeigt Typ, Version und benötigte Berechtigungen.</p><a href="#discover">Katalog öffnen →</a></article><article class="guide-card"><span class="guide-number">02</span><h3>Prüfe vor der Installation</h3><p>Community-Inhalte sind ungeprüft. Lies Beschreibung und Permissions und installiere nur Pakete aus Quellen, denen du vertraust.</p><a href="#safety">Sicherheitsregeln →</a></article><article class="guide-card"><span class="guide-number">03</span><h3>Teile dein Setup</h3><p>Registriere dich, lade Manifest und ZIP hoch und reiche dein Paket als Entwurf zur Prüfung ein.</p><button class="text-button" data-open-upload type="button">Jetzt einreichen →</button></article></div></section>
+    <section class="info-band shell" id="guides"><div class="section-heading"><div><p class="eyebrow">Wissen & Sicherheit</p><h2>Schneller startklar.</h2></div></div><div class="guide-grid"><article class="guide-card"><span class="guide-number">01</span><h3>Finde passende Configs</h3><p>Suche nach deinem Hudiy-Modell, Setup oder Anwendungsfall. Jede Karte zeigt Typ, Version und benötigte Berechtigungen.</p><a href="#discover">Katalog öffnen →</a></article><article class="guide-card"><span class="guide-number">02</span><h3>Prüfe vor der Installation</h3><p>Community-Inhalte sind ungeprüft. Lies Beschreibung und Permissions und installiere nur Pakete aus Quellen, denen du vertraust.</p><a href="#safety">Sicherheitsregeln →</a></article><article class="guide-card"><span class="guide-number">03</span><h3>Teile dein Setup</h3><p>Veröffentliche dein Plugin oder deine Config in einem öffentlichen GitHub-Repo und reiche den Repo-Link zur Prüfung ein.</p><button class="text-button" data-open-upload type="button">Jetzt einreichen →</button></article></div></section>
 
-    <section class="upload-section shell" id="upload"><div class="upload-card"><div><p class="eyebrow">Dein Beitrag</p><h2>Mach Hudiy besser.</h2><p>Teile eine Config, ein Widget oder eine Erweiterung mit der Community. Uploads werden serverseitig über Supabase Storage und RLS abgesichert.</p></div><button class="button button-primary" data-open-upload type="button">Plugin oder Config hochladen ↗</button></div></section>
+    <section class="upload-section shell" id="upload"><div class="upload-card"><div><p class="eyebrow">Dein Beitrag</p><h2>Mach Hudiy besser.</h2><p>Veröffentliche deinen Beitrag in einem öffentlichen GitHub-Repository. Firebase Authentication und Firestore Rules sichern die Einreichung; das Repository bleibt die einzige Paketquelle.</p></div><button class="button button-primary" data-open-upload type="button">GitHub-Repo einreichen ↗</button></div></section>
 
     <section class="safety shell" id="safety"><span class="safety-icon">!</span><div><strong>Community-made · ungeprüft</strong><p>Es gibt keine Sicherheits-, Viren- oder Funktionsgarantie. Prüfe Permissions, Quelle und Paketinhalt vor jeder Installation.</p></div></section>
   </main>
   <footer class="site-footer shell"><span>Hudiy Marketplace Website</span><span>Open community · MIT</span><a href="https://github.com/EpicNori/Hudiy-Marketplace" target="_blank" rel="noreferrer">Hudiy Marketplace App ↗</a></footer>
 
-  <dialog class="modal" id="upload-dialog"><div class="modal-header"><div><p class="eyebrow">Supabase Upload</p><h2>Beitrag einreichen</h2></div><button class="icon-button" data-close-modal type="button" aria-label="Dialog schließen">×</button></div><div class="modal-body"><p class="modal-intro">Melde dich an und reiche ein validiertes Plugin- oder Config-Paket als Entwurf ein.</p><form id="auth-form" class="auth-form"><label><span>E-Mail</span><input id="email" type="email" autocomplete="email" required /></label><label><span>Passwort</span><input id="password" type="password" autocomplete="current-password" minlength="6" required /></label><div class="inline-actions"><button class="button button-soft" id="sign-in" type="button">Einloggen</button><button class="button button-soft" id="sign-up" type="button">Registrieren</button><button class="button button-soft" id="google-login" type="button">Mit Google</button><button class="button button-ghost" id="sign-out" type="button" hidden>Abmelden</button></div></form><p class="auth-status" id="auth-status" role="status" aria-live="polite">Nicht angemeldet.</p><form id="upload-form" class="upload-form"><label><span>Manifest JSON</span><input id="manifest" type="file" accept="application/json,.json" required /></label><label><span>Plugin-/Config-Paket ZIP</span><input id="package" type="file" accept=".zip,application/zip" required /></label><button class="button button-primary" id="submit-upload" type="submit" disabled>Hochladen und einreichen</button></form></div></dialog>
+  <dialog class="modal" id="upload-dialog"><div class="modal-header"><div><p class="eyebrow">GitHub-Einreichung</p><h2>Beitrag einreichen</h2></div><button class="icon-button" data-close-modal type="button" aria-label="Dialog schließen">×</button></div><div class="modal-body"><p class="modal-intro">Melde dich an und reiche ein öffentliches GitHub-Repository als Entwurf ein. Das Repository muss eine valide <code>manifest.json</code> enthalten.</p><form id="auth-form" class="auth-form"><label><span>E-Mail</span><input id="email" type="email" autocomplete="email" required /></label><label><span>Passwort</span><input id="password" type="password" autocomplete="current-password" minlength="6" required /></label><div class="inline-actions"><button class="button button-soft" id="sign-in" type="button">Einloggen</button><button class="button button-soft" id="sign-up" type="button">Registrieren</button><button class="button button-soft" id="google-login" type="button">Mit Google</button><button class="button button-ghost" id="sign-out" type="button" hidden>Abmelden</button></div></form><p class="auth-status" id="auth-status" role="status" aria-live="polite">Nicht angemeldet.</p><form id="upload-form" class="upload-form"><label><span>Öffentliche GitHub-Repository-URL</span><input id="repo-url" type="url" placeholder="https://github.com/owner/repository" required /></label><label><span>Branch oder Tag</span><input id="repo-ref" type="text" value="main" pattern="[A-Za-z0-9._/-]+" required /></label><label><span>Pfad zum Manifest</span><input id="manifest-path" type="text" value="manifest.json" pattern="[A-Za-z0-9._/-]+" required /></label><p class="form-hint">Der Beitrag wird später genau aus diesem öffentlichen Repository installiert. Nutze keine privaten oder passwortgeschützten Repositories.</p><button class="button button-primary" id="submit-upload" type="submit" disabled>GitHub-Repo prüfen und einreichen</button></form></div></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 `;
 
 const elements = {
-  grid: document.querySelector('#catalog-grid'), empty: document.querySelector('#empty-state'), emptyTitle: document.querySelector('#empty-title'), emptyCopy: document.querySelector('#empty-copy'), resultCount: document.querySelector('#result-count'), heroCount: document.querySelector('#hero-count'), search: document.querySelector('#search'), clearSearch: document.querySelector('#clear-search'), filters: document.querySelector('#filters'), dialog: document.querySelector('#upload-dialog'), authForm: document.querySelector('#auth-form'), email: document.querySelector('#email'), password: document.querySelector('#password'), signIn: document.querySelector('#sign-in'), signUp: document.querySelector('#sign-up'), google: document.querySelector('#google-login'), signOut: document.querySelector('#sign-out'), authStatus: document.querySelector('#auth-status'), uploadForm: document.querySelector('#upload-form'), manifest: document.querySelector('#manifest'), package: document.querySelector('#package'), submit: document.querySelector('#submit-upload'), toast: document.querySelector('#toast'), sessionPill: document.querySelector('#session-pill'), headerLogin: document.querySelector('#header-login'), themeToggle: document.querySelector('#theme-toggle')
+  grid: document.querySelector('#catalog-grid'), empty: document.querySelector('#empty-state'), emptyTitle: document.querySelector('#empty-title'), emptyCopy: document.querySelector('#empty-copy'), resultCount: document.querySelector('#result-count'), heroCount: document.querySelector('#hero-count'), search: document.querySelector('#search'), clearSearch: document.querySelector('#clear-search'), filters: document.querySelector('#filters'), dialog: document.querySelector('#upload-dialog'), email: document.querySelector('#email'), password: document.querySelector('#password'), signIn: document.querySelector('#sign-in'), signUp: document.querySelector('#sign-up'), google: document.querySelector('#google-login'), signOut: document.querySelector('#sign-out'), authStatus: document.querySelector('#auth-status'), uploadForm: document.querySelector('#upload-form'), repoUrl: document.querySelector('#repo-url'), repoRef: document.querySelector('#repo-ref'), manifestPath: document.querySelector('#manifest-path'), submit: document.querySelector('#submit-upload'), toast: document.querySelector('#toast'), sessionPill: document.querySelector('#session-pill'), headerLogin: document.querySelector('#header-login'), themeToggle: document.querySelector('#theme-toggle')
 };
 
-function supabaseRequest(path, options = {}) {
-  const headers = new Headers(options.headers || {});
-  headers.set('apikey', SUPABASE_KEY);
-  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
-  const isAuthRequest = path.startsWith('/auth/v1/');
-  if (state.session?.access_token && !isAuthRequest) headers.set('Authorization', `Bearer ${state.session.access_token}`);
-  return fetch(`${SUPABASE_URL.replace(/\/$/, '')}${path}`, { ...options, headers }).then(async (response) => {
-    const body = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(body?.msg || body?.message || body?.error_description || `Supabase ${response.status}`);
-    return body;
-  });
+function toast(message) { elements.toast.textContent = message; elements.toast.hidden = false; window.clearTimeout(toast.timer); toast.timer = window.setTimeout(() => { elements.toast.hidden = true; }, 4200); }
+function isDarkMode() { return document.documentElement.dataset.mode !== 'light'; }
+function ensureFirebase() { if (!FIREBASE_CONFIGURED || !auth || !db) throw new Error('Firebase ist noch nicht konfiguriert.'); }
+function firebaseErrorMessage(error) {
+  const code = String(error?.code || '');
+  if (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') return 'E-Mail oder Passwort ist nicht korrekt.';
+  if (code === 'auth/email-already-in-use') return 'Für diese E-Mail existiert bereits ein Konto.';
+  if (code === 'auth/weak-password') return 'Das Passwort muss mindestens sechs Zeichen lang sein.';
+  if (code === 'auth/operation-not-allowed') return 'Dieser Login-Anbieter ist in Firebase noch nicht aktiviert.';
+  if (code === 'auth/popup-blocked') return 'Der Browser hat das Google-Login-Fenster blockiert.';
+  if (code === 'auth/popup-closed-by-user') return 'Das Google-Login wurde geschlossen.';
+  if (code === 'permission-denied') return 'Firebase Rules erlauben diese Aktion nicht.';
+  return error?.message || 'Firebase-Vorgang fehlgeschlagen.';
 }
 
-function loadSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } }
-function saveSession(session) { state.session = session?.access_token ? session : null; if (state.session) localStorage.setItem(SESSION_KEY, JSON.stringify(state.session)); else localStorage.removeItem(SESSION_KEY); updateAuthUi(); }
-function toast(message) { elements.toast.textContent = message; elements.toast.hidden = false; window.clearTimeout(toast.timer); toast.timer = window.setTimeout(() => { elements.toast.hidden = true; }, 4200); }
-function isColorModeDark() { return document.documentElement.dataset.mode !== 'light'; }
-
 function renderCatalog() {
-  const query = state.query.toLocaleLowerCase('de-DE');
+  const queryText = state.query.toLocaleLowerCase('de-DE');
   const filtered = state.entries.filter((entry) => {
     const matchesType = state.filter === 'all' || entry.type === state.filter;
     const haystack = `${entry.name || ''} ${entry.description || ''} ${entry.author || ''} ${entry.type || ''}`.toLocaleLowerCase('de-DE');
-    return matchesType && (!query || haystack.includes(query));
+    return matchesType && (!queryText || haystack.includes(queryText));
   });
   elements.grid.innerHTML = filtered.map((entry) => `<article class="catalog-card"><div class="card-top"><span class="type-label">${escapeHtml(typeLabel(entry.type))}</span><span class="version">v${escapeHtml(entry.version || '–')}</span></div><div class="card-icon">${escapeHtml((entry.name || 'H').slice(0, 1).toUpperCase())}</div><h3>${escapeHtml(entry.name || 'Unbenannter Beitrag')}</h3><p>${escapeHtml(entry.description || 'Keine Beschreibung vorhanden.')}</p><div class="card-bottom"><span>${escapeHtml(entry.author || 'Community')}</span><button class="text-button" type="button" data-entry-id="${escapeHtml(entry.id || '')}">Details →</button></div></article>`).join('');
   elements.empty.hidden = filtered.length > 0;
@@ -111,103 +131,99 @@ function typeLabel(type) { return { application: 'Application', dashboard: 'Dash
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 
 async function loadCatalog() {
+  if (!FIREBASE_CONFIGURED) {
+    elements.resultCount.textContent = 'Firebase nicht konfiguriert';
+    elements.empty.hidden = false;
+    elements.emptyTitle.textContent = 'Firebase-Konfiguration fehlt';
+    elements.emptyCopy.textContent = 'Trage die VITE_FIREBASE_* Werte in .env.local oder Vercel ein, damit der Katalog geladen wird.';
+    return;
+  }
   try {
-    const payload = await supabaseRequest('/functions/v1/catalog');
-    state.entries = Array.isArray(payload?.plugins) ? payload.plugins : [];
+    const snapshot = await getDocs(query(collection(db, 'plugins'), where('status', '==', 'published')));
+    state.entries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).sort((a, b) => String(b.createdAt?.toMillis?.() || '').localeCompare(String(a.createdAt?.toMillis?.() || '')));
     renderCatalog();
   } catch (error) {
     state.entries = [];
     elements.resultCount.textContent = 'Katalog nicht erreichbar';
     elements.empty.hidden = false;
-    elements.emptyTitle.textContent = 'Katalog wird gerade verbunden';
-    elements.emptyCopy.textContent = 'Die Website ist bereit. Sobald Supabase erreichbar ist, erscheinen hier veröffentlichte Beiträge.';
+    elements.emptyTitle.textContent = 'Firebase-Katalog nicht erreichbar';
+    elements.emptyCopy.textContent = firebaseErrorMessage(error);
     elements.grid.innerHTML = '';
   }
 }
 
-async function loadAuthProviders() {
-  try {
-    const settings = await supabaseRequest('/auth/v1/settings');
-    state.googleEnabled = Boolean(settings?.external?.google);
-    updateAuthUi();
-  } catch {
-    // Keep email/password available when provider discovery is temporarily unavailable.
-  }
-}
-
 function updateAuthUi() {
-  const signedIn = Boolean(state.session?.access_token);
-  elements.sessionPill.textContent = signedIn ? (state.session.user?.email || 'Angemeldet') : 'Gast';
+  const signedIn = Boolean(state.user);
+  elements.sessionPill.textContent = signedIn ? (state.user.email || 'Angemeldet') : 'Gast';
   elements.headerLogin.textContent = signedIn ? 'Konto' : 'Anmelden';
   elements.headerLogin.setAttribute('aria-label', signedIn ? 'Konto und Upload öffnen' : 'Anmelden');
-  elements.signIn.hidden = signedIn; elements.signUp.hidden = signedIn; elements.google.hidden = signedIn || !state.googleEnabled; elements.signOut.hidden = !signedIn;
+  elements.signIn.hidden = signedIn; elements.signUp.hidden = signedIn; elements.google.hidden = signedIn || !FIREBASE_CONFIGURED; elements.signOut.hidden = !signedIn;
   elements.email.disabled = signedIn; elements.password.disabled = signedIn;
-  elements.authStatus.textContent = signedIn ? `Angemeldet als ${state.session.user?.email || 'Supabase-Konto'}.` : `Nicht angemeldet. Zum Hochladen ist ein Konto erforderlich.${state.googleEnabled ? '' : ' Google-Login ist im Supabase-Projekt noch nicht aktiviert.'}`;
+  elements.authStatus.textContent = signedIn ? `Angemeldet als ${state.user.email || 'Firebase-Konto'}.` : FIREBASE_CONFIGURED ? 'Nicht angemeldet. Zum Hochladen ist ein Konto erforderlich.' : 'Firebase ist noch nicht konfiguriert.';
   elements.authStatus.dataset.state = signedIn ? 'signed-in' : 'signed-out';
   elements.submit.disabled = !signedIn || state.uploadBusy;
 }
 
-async function auth(path, button) {
+async function emailAuth(mode, button) {
   if (state.authBusy) return;
   state.authBusy = true; button.disabled = true;
   try {
+    ensureFirebase();
     const email = elements.email.value.trim();
     const password = elements.password.value;
     if (!email || !password) throw new Error('E-Mail und Passwort ausfüllen.');
-    const session = await supabaseRequest(path, { method: 'POST', body: JSON.stringify({ email, password }) });
-    if (!session?.access_token) {
-      updateAuthUi();
-      toast(path.includes('/signup') ? 'Konto erstellt. Bitte bestätige zuerst deine E-Mail.' : 'Keine gültige Session erhalten.');
-      return;
-    }
-    saveSession(session);
-    toast('Anmeldung erfolgreich.');
-  } catch (error) { toast(authErrorMessage(error)); }
+    if (mode === 'signup') await createUserWithEmailAndPassword(auth, email, password);
+    else await signInWithEmailAndPassword(auth, email, password);
+    toast(mode === 'signup' ? 'Konto erstellt und angemeldet.' : 'Anmeldung erfolgreich.');
+  } catch (error) { toast(firebaseErrorMessage(error)); }
   finally { state.authBusy = false; button.disabled = false; updateAuthUi(); }
 }
 
-function authErrorMessage(error) {
-  const message = String(error?.message || '');
-  if (/invalid login credentials/i.test(message)) return 'E-Mail oder Passwort ist nicht korrekt.';
-  if (/email not confirmed/i.test(message)) return 'Bitte bestätige zuerst deine E-Mail-Adresse.';
-  if (/user already registered/i.test(message)) return 'Für diese E-Mail existiert bereits ein Konto.';
-  if (/failed to fetch|networkerror/i.test(message)) return 'Supabase ist nicht erreichbar. Prüfe URL und Vercel-Umgebungsvariablen.';
-  return message || 'Anmeldung fehlgeschlagen.';
+async function startGoogleLogin() {
+  try { ensureFirebase(); await signInWithPopup(auth, new GoogleAuthProvider()); toast('Google-Anmeldung erfolgreich.'); }
+  catch (error) { toast(firebaseErrorMessage(error)); }
 }
 
-function startGoogleLogin() {
-  const redirect = new URL(SITE_URL); redirect.hash = '';
-  const url = new URL('/auth/v1/authorize', SUPABASE_URL); url.searchParams.set('provider', 'google'); url.searchParams.set('redirect_to', redirect.href); window.location.assign(url.href);
+function parseGithubRepository(value) {
+  let url;
+  try { url = new URL(value.trim()); } catch { throw new Error('Bitte eine gültige GitHub-Repository-URL angeben.'); }
+  if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'github.com') throw new Error('Nur öffentliche https://github.com/... Repositories sind erlaubt.');
+  const parts = url.pathname.split('/').filter(Boolean);
+  if (parts.length !== 2 || parts.some((part) => part === '.' || part === '..')) throw new Error('GitHub-URL muss genau owner/repository enthalten.');
+  return { owner: parts[0], repo: parts[1].replace(/\.git$/i, '') };
 }
 
-async function handleAuthRedirect() {
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  if (!hash.get('access_token')) return;
-  try { const session = { access_token: hash.get('access_token'), refresh_token: hash.get('refresh_token'), token_type: hash.get('token_type'), expires_in: Number(hash.get('expires_in') || 3600), expires_at: Math.floor(Date.now() / 1000) + Number(hash.get('expires_in') || 3600) }; const user = await supabaseRequest('/auth/v1/user', { headers: { Authorization: `Bearer ${session.access_token}` } }); session.user = user; saveSession(session); history.replaceState(null, '', window.location.pathname + window.location.search); toast('Google-Anmeldung erfolgreich.'); } catch { toast('Google-Anmeldung konnte nicht abgeschlossen werden.'); }
+function githubManifestUrl(owner, repo, refName, manifestPath) {
+  const path = manifestPath.split('/').filter(Boolean).map((part) => encodeURIComponent(part)).join('/');
+  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(refName)}/${path}`;
+}
+
+function validateManifest(manifest) {
+  const required = ['id', 'name', 'description', 'author', 'version'];
+  if (!manifest || typeof manifest !== 'object' || required.some((key) => typeof manifest[key] !== 'string' || !manifest[key].trim())) throw new Error('Manifest unvollständig.');
+  if (manifest.schemaVersion !== 1 || (typeof manifest.supportedHudiyVersion !== 'string' && typeof manifest.supportedHudiy?.minVersion !== 'string')) throw new Error('Manifest-Schema oder Hudiy-Version ungültig.');
+  if (!/^[a-z0-9][a-z0-9._-]{1,63}$/.test(manifest.id) || !/^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$/.test(manifest.version)) throw new Error('Manifest-ID oder Version ungültig.');
 }
 
 async function uploadPackage(event) {
-  event.preventDefault(); if (!state.session?.access_token || state.uploadBusy) return;
-  const manifestFile = elements.manifest.files?.[0]; const packageFile = elements.package.files?.[0];
-  if (!manifestFile || !packageFile) return toast('Manifest und ZIP auswählen.');
-  if (packageFile.size > MAX_UPLOAD_BYTES) return toast('Das ZIP darf maximal 50 MB groß sein.');
+  event.preventDefault();
+  if (!state.user || state.uploadBusy) return;
   state.uploadBusy = true; updateAuthUi();
   try {
-    const manifest = JSON.parse(await manifestFile.text());
-    const required = ['id', 'name', 'description', 'author', 'version', 'checksum'];
-    if (required.some((key) => typeof manifest[key] !== 'string' || !manifest[key].trim())) throw new Error('Manifest unvollständig.');
-    if (manifest.schemaVersion !== 1 || (typeof manifest.supportedHudiyVersion !== 'string' && typeof manifest.supportedHudiy?.minVersion !== 'string')) throw new Error('Manifest-Schema oder Hudiy-Version ungültig.');
-    if (!/^[a-z0-9][a-z0-9._-]{1,63}$/.test(manifest.id) || !/^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$/.test(manifest.version)) throw new Error('Manifest-ID oder Version ungültig.');
-    if (!packageFile.name.toLowerCase().endsWith('.zip')) throw new Error('Nur ZIP-Pakete sind erlaubt.');
-    const digest = await crypto.subtle.digest('SHA-256', await packageFile.arrayBuffer()); const checksum = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-    if (manifest.checksum.replace(/^sha256:/i, '').toLowerCase() !== checksum) throw new Error('Checksum stimmt nicht mit dem ZIP überein.');
-    const form = new FormData();
-    form.append('manifest', new File([JSON.stringify(manifest)], 'manifest.json', { type: 'application/json' }));
-    form.append('package', packageFile, packageFile.name);
-    const result = await supabaseRequest('/functions/v1/submit-plugin-upload', { method: 'POST', body: form });
-    if (!result?.ok) throw new Error('Upload wurde abgelehnt.');
-    toast('Upload serverseitig geprüft und zur Moderation eingereicht.'); elements.uploadForm.reset();
-  } catch (error) { toast(error.message || 'Upload fehlgeschlagen.'); }
+    ensureFirebase();
+    const { owner, repo } = parseGithubRepository(elements.repoUrl.value);
+    const refName = elements.repoRef.value.trim();
+    const manifestPath = elements.manifestPath.value.trim().replace(/^\/+|\/+$/g, '');
+    if (!refName || !/^[A-Za-z0-9._/-]+$/.test(refName) || !manifestPath || !/^[A-Za-z0-9._/-]+$/.test(manifestPath)) throw new Error('Branch/Tag und Manifest-Pfad sind ungültig.');
+    const manifestUrl = githubManifestUrl(owner, repo, refName, manifestPath);
+    const response = await fetch(manifestUrl, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('Manifest nicht gefunden. Prüfe öffentliche Repo-URL, Branch und Pfad.');
+    const manifest = await response.json();
+    validateManifest(manifest);
+    const submissionId = crypto.randomUUID();
+    await addDoc(collection(db, 'submissions'), { submissionId, sourceType: 'github', pluginId: manifest.id, name: manifest.name, description: manifest.description, author: manifest.author, version: manifest.version, ownerId: state.user.uid, status: 'pending', repoUrl: `https://github.com/${owner}/${repo}`, repoOwner: owner, repoName: repo, repoRef: refName, manifestPath, manifestUrl, createdAt: serverTimestamp() });
+    toast('GitHub-Repository geprüft und zur Moderation eingereicht.'); elements.uploadForm.reset(); elements.repoRef.value = 'main'; elements.manifestPath.value = 'manifest.json';
+  } catch (error) { toast(firebaseErrorMessage(error)); }
   finally { state.uploadBusy = false; updateAuthUi(); }
 }
 
@@ -218,16 +234,18 @@ document.querySelector('#header-upload').addEventListener('click', openUpload);
 elements.headerLogin.addEventListener('click', openLogin);
 document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', () => elements.dialog.close()));
 elements.dialog.addEventListener('click', (event) => { if (event.target === elements.dialog) elements.dialog.close(); });
-elements.signIn.addEventListener('click', () => auth('/auth/v1/token?grant_type=password', elements.signIn));
-elements.signUp.addEventListener('click', () => auth('/auth/v1/signup', elements.signUp));
-elements.signOut.addEventListener('click', () => saveSession(null));
+elements.signIn.addEventListener('click', () => emailAuth('signin', elements.signIn));
+elements.signUp.addEventListener('click', () => emailAuth('signup', elements.signUp));
+elements.signOut.addEventListener('click', async () => { try { await signOut(auth); } catch (error) { toast(firebaseErrorMessage(error)); } });
 elements.google.addEventListener('click', startGoogleLogin);
 elements.uploadForm.addEventListener('submit', uploadPackage);
 elements.search.addEventListener('input', (event) => { state.query = event.target.value.trim(); elements.clearSearch.hidden = !state.query; renderCatalog(); });
 elements.clearSearch.addEventListener('click', () => { elements.search.value = ''; state.query = ''; elements.clearSearch.hidden = true; renderCatalog(); });
 elements.filters.addEventListener('click', (event) => { const button = event.target.closest('[data-filter]'); if (!button) return; state.filter = button.dataset.filter; document.querySelectorAll('.filter').forEach((item) => item.classList.toggle('active', item === button)); renderCatalog(); });
-elements.themeToggle.addEventListener('click', () => { document.documentElement.dataset.mode = isColorModeDark() ? 'light' : 'dark'; elements.themeToggle.textContent = isColorModeDark() ? '☼' : '☾'; localStorage.setItem('hudiy-community-mode', document.documentElement.dataset.mode); });
+elements.themeToggle.addEventListener('click', () => { document.documentElement.dataset.mode = isDarkMode() ? 'light' : 'dark'; elements.themeToggle.textContent = isDarkMode() ? '☼' : '☾'; localStorage.setItem('hudiy-community-mode', document.documentElement.dataset.mode); });
 
 document.documentElement.dataset.mode = localStorage.getItem('hudiy-community-mode') || 'dark';
-elements.themeToggle.textContent = isColorModeDark() ? '☼' : '☾';
-state.session = loadSession(); updateAuthUi(); handleAuthRedirect().finally(() => { loadCatalog(); loadAuthProviders(); });
+elements.themeToggle.textContent = isDarkMode() ? '☼' : '☾';
+updateAuthUi();
+if (auth) onAuthStateChanged(auth, (user) => { state.user = user; updateAuthUi(); });
+loadCatalog();

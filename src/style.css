@@ -138,6 +138,8 @@ h1 span { color: var(--accent); }
 .auth-status { padding: 12px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); font-size: 13px; }
 .auth-status[data-state='signed-in'] { border-color: var(--primary); color: var(--text); }
 .upload-form { margin-top: 21px; padding-top: 20px; border-top: 1px solid var(--line); }
+.form-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.modal code { padding: 2px 5px; border-radius: 4px; background: var(--surface-2); color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .9em; }
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; max-width: min(420px, calc(100% - 40px)); padding: 13px 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--text); box-shadow: 0 20px 50px var(--shadow); }
 
 @media (max-width: 860px) {

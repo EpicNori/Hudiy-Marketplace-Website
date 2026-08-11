@@ -1,0 +1,26 @@
+// Legacy rules kept for reference only. The active GitHub-repository flow does not use Cloud Storage.
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /submissions/{uid}/{submissionId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 50 * 1024 * 1024
+        && (
+          (fileName == 'package.zip' && request.resource.contentType in ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'])
+          || (fileName == 'manifest.json' && request.resource.contentType == 'application/json')
+        );
+
+      allow update, delete: if false;
+    }
+
+    // Published packages are written by the moderation process, never by clients.
+    match /plugins/{pluginId}/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

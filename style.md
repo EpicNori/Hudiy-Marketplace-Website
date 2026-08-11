@@ -6,7 +6,7 @@ The public website follows the Hudiy dashboard language shown in the product ref
 
 ## Direction
 
-The website is the public companion to the Hudiy WebView Marketplace. It uses a dark brown/black dashboard foundation with warm cream text, restrained amber controls, compact rectangular cards, and a technical editorial layout. A light mode is available through the header toggle.
+The website is the public companion to the Hudiy WebView Marketplace. It uses a dark brown/black dashboard foundation with warm cream text, restrained amber controls, compact rectangular cards, and a technical editorial layout. A light mode is available through the header toggle. Firebase is the active backend for authentication, the published catalogue and GitHub-based submissions.
 
 ## Tokens
 
@@ -29,6 +29,6 @@ All page colors use CSS custom properties. No catalog data is rendered as truste
 - Upload call-to-action and persistent safety notice.
 - Dialog-based authentication and upload flow. The header's `Anmelden` button opens the same auth surface directly; after login it becomes `Konto`.
 
-## Supabase contract
+## Firebase contract
 
-The frontend uses the existing `mdzsxuxqrhnadmkroalq` project through its publishable key. Authentication tokens are sent to Supabase REST and Storage endpoints; database and Storage RLS remain the authorization boundary. The website does not contain service-role credentials.
+The frontend uses the Firebase Web SDK with `VITE_FIREBASE_*` configuration. Firebase Authentication manages sessions and Firestore Rules protect the catalogue and submissions. A submission stores a public GitHub repository reference; package files are not copied into Firebase Storage. The website does not contain service-account credentials. See `firestore.rules` for the active authorization boundary.
